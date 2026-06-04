@@ -52,6 +52,12 @@ export default function CoinGlobe({ coins, activeCoinId, onSelectCoin }: CoinGlo
 
   // Drag-to-pan handlers
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Don't start dragging if clicking on a button or interactive element
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'BUTTON' || target.closest('button')) {
+      return;
+    }
+    
     if (e.button !== 0) return; // Only left click
     setIsDragging(true);
     setIsTransitioning(false);
@@ -131,7 +137,7 @@ export default function CoinGlobe({ coins, activeCoinId, onSelectCoin }: CoinGlo
   }, [activeCoinId]);
 
   return (
-    <div className="relative w-full h-[520px] bg-slate-50 border border-slate-200 rounded-3xl overflow-hidden shadow-sm select-none">
+    <div className="relative w-full h-full bg-black overflow-hidden select-none">
       {/* Viewport wrapper with drag cursor */}
       <div
         ref={viewportRef}
@@ -144,8 +150,8 @@ export default function CoinGlobe({ coins, activeCoinId, onSelectCoin }: CoinGlo
           isDragging ? "cursor-grabbing" : "cursor-grab"
         }`}
       >
-        {/* Infinite subtle mapping grid or minimalist canvas lines */}
-        <div className="absolute inset-0 bg-[#f9fafb] pointer-events-none" />
+        {/* Subtle dark overlay */}
+        <div className="absolute inset-0 bg-black/20 pointer-events-none" />
 
         {/* Scaled & translated Map layer */}
         <div
@@ -158,24 +164,27 @@ export default function CoinGlobe({ coins, activeCoinId, onSelectCoin }: CoinGlo
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
           }}
         >
-          {/* Flat World Map background image */}
-          <img
-            src={worldMapUrl}
-            alt="World Map"
-            referrerPolicy="no-referrer"
-            className="w-full h-full object-cover select-none pointer-events-none opacity-[0.92]"
-          />
+          {/* Flat World Map background */}
+          <div
+            style={{
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+              transformOrigin: "0 0"
+            }}
+            className={`relative ${isTransitioning ? "transition-transform duration-500 ease-out" : ""}`}
+          >
+            <img src={worldMapUrl} alt="World Map" className="w-full h-auto block" style={{
+              filter: 'brightness(0.3) contrast(1.1) saturate(0.5) sepia(0.2)',
+              opacity: 0.8
+            }} />
 
-          {/* Calibrated Coin Markers absolute overlay */}
+            {/* Subtle gradient overlay on map */}
+            <div className="absolute inset-0 bg-gradient-to-br from-[#000]/20 via-transparent to-[#000]/40 pointer-events-none" />
+          </div>
           {coins.map((coin) => {
             const coords = CALIBRATED_COORDS[coin.id];
             if (!coords) return null;
 
             const isActive = coin.id === activeCoinId;
-            let markerColor = "ring-slate-400 bg-slate-600 border-white";
-            if (coin.metalColor === "gold") markerColor = "ring-amber-300 bg-amber-500 border-white";
-            else if (coin.metalColor === "bimetallic") markerColor = "ring-amber-400 bg-emerald-600 border-white";
-            else if (coin.metalColor === "silver") markerColor = "ring-blue-300 bg-blue-500 border-white";
 
             return (
               <button
@@ -184,37 +193,58 @@ export default function CoinGlobe({ coins, activeCoinId, onSelectCoin }: CoinGlo
                   e.stopPropagation();
                   onSelectCoin(coin.id === activeCoinId ? null : coin.id);
                 }}
-                className="absolute -translate-x-1/2 -translate-y-1/2 group cursor-pointer z-20 pointer-events-auto"
+                type="button"
+                className="absolute cursor-pointer z-20 pointer-events-auto transition-all duration-300 group"
                 style={{
                   left: `${coords.x}%`,
                   top: `${coords.y}%`,
+                  transform: "translate(-50%, -50%)",
+                  width: '24px',
+                  height: '24px',
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '0',
+                  margin: '0'
                 }}
               >
-                {/* Radiant Pulsing Ring */}
-                <span
-                  className={`absolute inline-flex rounded-full opacity-75 animate-ping duration-1000 ${
-                    isActive ? "h-10 w-10 -left-3 -top-3 bg-amber-400/40" : "h-7 w-7 -left-1.5 -top-1.5 bg-slate-300/30 group-hover:bg-slate-400/20"
-                  }`}
-                />
-
-                {/* Elegant Interactive Dot Pin */}
-                <div
-                  className={`w-4.5 h-4.5 rounded-full border-2 shadow-md transition-all duration-300 relative z-10 flex items-center justify-center ${markerColor} ${
-                    isActive ? "scale-135 ring-4 ring-amber-450/30 border-amber-500" : "hover:scale-120 hover:shadow-lg"
-                  }`}
-                >
-                  <span className="text-[7px] text-white font-bold select-none">{coin.symbol[0]}</span>
-                </div>
-
-                {/* Minimalist floating label overlay (Visible on active or hover) */}
-                <div
-                  className={`absolute top-6 left-1/2 -translate-x-1/2 bg-white/95 border border-slate-200/80 px-2.5 py-1.5 rounded-xl text-[11px] font-sans text-slate-800 shadow-sm transition-all duration-200 whitespace-nowrap min-w-max pointer-events-none ${
-                    isActive ? "opacity-100 translate-y-0 text-amber-600 font-bold border-amber-200 bg-amber-50/95" : "opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0"
-                  }`}
-                >
-                  <div className="flex items-center gap-1">
-                    <span>{coin.symbol}</span>
-                    <span>{coin.name.split("（")[0]}</span>
+                {/* Circular marker with dot */}
+                <div className="relative w-full h-full flex items-center justify-center">
+                  {/* Outer glow ring */}
+                  <div
+                    className={`absolute rounded-full transition-all duration-300 pointer-events-none ${
+                      isActive ? "opacity-100" : "opacity-50 group-hover:opacity-75"
+                    }`}
+                    style={{
+                      width: isActive ? '32px' : '24px',
+                      height: isActive ? '32px' : '24px',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      boxShadow: isActive 
+                        ? "0 0 20px rgba(251, 146, 60, 0.8), 0 0 40px rgba(251, 146, 60, 0.4)"
+                        : "0 0 10px rgba(148, 163, 184, 0.3)"
+                    }}
+                  />
+                  
+                  {/* Dot circle */}
+                  <div
+                    className={`w-3.5 h-3.5 rounded-full transition-all duration-300 pointer-events-none relative z-10 ${
+                      isActive ? 'ring-2 ring-amber-500' : ''
+                    }`}
+                    style={{
+                      backgroundColor: isActive ? '#f59e0b' : '#94a3b8',
+                      boxShadow: isActive ? '0 0 12px rgba(251, 146, 60, 0.6)' : 'none'
+                    }}
+                  />
+                  
+                  {/* Tooltip label */}
+                  <div
+                    className={`absolute -top-12 left-1/2 -translate-x-1/2 bg-[#1a1a1a]/98 border border-slate-700/50 px-2.5 py-1.5 rounded text-[10px] font-sans text-slate-100 shadow-lg transition-all duration-200 whitespace-nowrap pointer-events-none backdrop-blur-sm ${
+                      isActive ? "opacity-100 translate-y-0" : "opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0"
+                    }`}
+                  >
+                    <div className="text-amber-400 font-semibold">{coin.name}</div>
+                    <div className="text-slate-400 text-[9px] mt-0.5">{coin.country.split(" (")[0]}</div>
                   </div>
                 </div>
               </button>
@@ -223,35 +253,41 @@ export default function CoinGlobe({ coins, activeCoinId, onSelectCoin }: CoinGlo
         </div>
       </div>
 
-      {/* Floating minimalist controls (Reduced clutter, extremely simple layout) */}
-      <div className="absolute bottom-4 right-4 flex items-center gap-1 bg-white/95 border border-slate-200/80 rounded-2xl p-1 shadow-sm z-30">
+      {/* Floating minimalist controls */}
+      <div className="absolute bottom-8 right-8 flex items-center gap-2 bg-black/80 border border-slate-700/50 rounded-2xl p-2.5 shadow-2xl z-30 backdrop-blur-sm">
         <button
           onClick={() => handleZoom(1.25)}
           title="放大"
-          className="p-2 text-slate-500 hover:text-slate-800 transition rounded-xl cursor-pointer hover:bg-slate-100 active:scale-95"
+          className="p-2.5 text-slate-400 hover:text-amber-400 transition rounded-lg cursor-pointer hover:bg-slate-900/50 active:scale-95"
         >
-          <ZoomIn className="w-4 h-4" />
+          <ZoomIn className="w-5 h-5" />
         </button>
+        <div className="w-px h-6 bg-slate-700/30" />
         <button
           onClick={() => handleZoom(0.8)}
           title="缩小"
-          className="p-2 text-slate-500 hover:text-slate-800 transition rounded-xl cursor-pointer hover:bg-slate-100 active:scale-95"
+          className="p-2.5 text-slate-400 hover:text-amber-400 transition rounded-lg cursor-pointer hover:bg-slate-900/50 active:scale-95"
         >
-          <ZoomOut className="w-4 h-4" />
+          <ZoomOut className="w-5 h-5" />
         </button>
+        <div className="w-px h-6 bg-slate-700/30" />
         <button
           onClick={handleReset}
           title="复位姿态"
-          className="p-2 text-slate-500 hover:text-slate-800 transition rounded-xl cursor-pointer hover:bg-slate-100 active:scale-95"
+          className="p-2.5 text-slate-400 hover:text-amber-400 transition rounded-lg cursor-pointer hover:bg-slate-900/50 active:scale-95"
         >
-          <RotateCcw className="w-4 h-4" />
+          <RotateCcw className="w-5 h-5" />
         </button>
       </div>
 
-      {/* Subtle indicator label */}
-      <div className="absolute top-4 left-4 pointer-events-none bg-white/90 border border-slate-200/80 px-3 py-1.5 rounded-xl text-[10px] font-mono text-slate-400 font-semibold shadow-sm flex items-center gap-1.5 z-30">
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-        <span>沉浸展厅地图 · 鼠标拖拽平移</span>
+      {/* Title and indicator label */}
+      <div className="absolute top-8 left-8 pointer-events-none z-30">
+        <div className="bg-black/80 border border-slate-700/50 backdrop-blur-sm px-5 py-4 rounded-xl shadow-2xl max-w-sm">
+          <h1 className="text-xl font-bold text-slate-100 mb-1.5 flex items-center gap-2">
+            🐏 羊主题全球纪念币学术博览馆
+          </h1>
+          <p className="text-[11px] font-mono text-slate-400 leading-relaxed">点击地图上的小圆点查看硬币详情 · 鼠标拖拽平移地图</p>
+        </div>
       </div>
     </div>
   );
