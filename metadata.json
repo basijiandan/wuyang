@@ -1,0 +1,6 @@
+{
+  "name": "羊主题钱币三维空间",
+  "description": "一个以三维世界地图为背景的羊题材钱币博览馆，展示中国、英国、澳大利亚、蒙古、新西兰和欧洲等国家的经典羊题材钱币。支持三维旋转、缩放，并提供深度历史背景和细节观赏。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
